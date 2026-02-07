@@ -1,0 +1,26 @@
+# ============================================================================
+# BarterNow Backend Dependencies
+# ============================================================================
+
+# FastAPI web framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Template rendering
+jinja2==3.1.2
+
+# Form data handling
+python-multipart==0.0.6
+
+# PostgreSQL database driver (psycopg3 with binary and connection pool)
+# WHY: Modern async/sync PostgreSQL driver with connection pooling
+psycopg[binary,pool]>=3.1.0
+
+# Environment variable management
+# WHY: Load DATABASE_URL and other config from .env file
+python-dotenv>=1.0.0
+
+# ============================================================================
+# REMOVED DEPENDENCIES
+# ============================================================================
+# geopy==2.4.1 - REMOVED: Geographic matching now string-based, no lat/lon

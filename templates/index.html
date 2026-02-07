@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sponsorship Matching System</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Sponsorship Matching System</h1>
+            <p class="subtitle">Find relevant events for your sponsorship</p>
+        </header>
+        
+        <div class="controls">
+            <div class="form-group">
+                <label for="sponsorSelect">Select Sponsor:</label>
+                <select id="sponsorSelect">
+                    <option value="">-- Select a sponsor --</option>
+                </select>
+            </div>
+            <button id="findMatchesBtn" class="btn-primary" disabled>Find Relevant Events</button>
+        </div>
+        
+        <div id="loading" class="loading hidden">Loading matches...</div>
+        
+        <div id="results" class="results hidden">
+            <h2 id="resultsTitle"></h2>
+            <div id="matchesContainer"></div>
+        </div>
+        
+        <div id="noResults" class="no-results hidden">
+            <p>No matching events found (minimum 60% match required).</p>
+        </div>
+    </div>
+    
+    <script src="/static/script.js"></script>
+</body>
+</html>
