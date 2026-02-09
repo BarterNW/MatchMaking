@@ -11,7 +11,7 @@ IMPORTANT: Run this AFTER executing sql/matchmaking_schema_review.sql
 ConfigDB reference data (except match weight/rule sets) must already exist in the database.
 """
 
-from database import get_connection, ConfigDB, CoreDB
+from .database import get_connection, ConfigDB, CoreDB
 from typing import Dict, List, Tuple
 import sys
 

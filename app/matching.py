@@ -12,7 +12,7 @@ DESIGN PRINCIPLES:
 
 import json
 from typing import Dict, List, Optional
-from database import (
+from .database import (
     get_brand_profile,
     get_event_profile,
     get_all_event_orgs,
@@ -667,7 +667,7 @@ def get_matches_for_event(event_org_id: int) -> Dict:
             "matches": []
         }
     
-    from database import get_all_brand_orgs
+    from .database import get_all_brand_orgs
     brand_org_ids = get_all_brand_orgs()
     matches = []
     

@@ -11,8 +11,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Import database functions (PostgreSQL-based)
-from database import get_brands_list, close_pool, get_connection, get_events_list
-from matching import get_matches_for_brand, get_matches_for_event
+from .database import get_brands_list, close_pool, get_connection, get_events_list
+from .matching import get_matches_for_brand, get_matches_for_event
 
 
 @asynccontextmanager
