@@ -252,7 +252,7 @@ def score_audience_overlap(
     # Calculate average
     if scores:
         match_factor = sum(scores) / len(scores)
-        explanation = " | ".join(explanations)
+        explanation = "\n".join(explanations)
     else:
         match_factor = 0.5
         explanation = "Insufficient audience data to score"
@@ -443,7 +443,7 @@ def evaluate_event_for_brands(brand_org_id: int, event_org_id: int) -> Optional[
         if score['match_factor'] > 0:
             explanation_parts.append(f"{name.title()}: {score['explanation']}")
     
-    explanation = " | ".join(explanation_parts) if explanation_parts else "Minimal match"
+    explanation = "\n".join(explanation_parts) if explanation_parts else "Minimal match"
     
     return {
         "event_org_id": event['event_org_id'],
@@ -594,7 +594,7 @@ def evaluate_brand_for_events(brand_org_id: int, event_org_id: int) -> Optional[
         if score['match_factor'] > 0:
             explanation_parts.append(f"{name.title()}: {score['explanation']}")
     
-    explanation = " | ".join(explanation_parts) if explanation_parts else "Minimal match"
+    explanation = "\n".join(explanation_parts) if explanation_parts else "Minimal match"
     
     return {
         "event_org_id": event['event_org_id'],

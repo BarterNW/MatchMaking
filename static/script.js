@@ -1,168 +1,209 @@
-// Global state
-let sponsors = [];
+(function () {
+  const $ = (s, ctx = document) => ctx.querySelector(s);
+  const $$ = (s, ctx = document) => [...ctx.querySelectorAll(s)];
 
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', async () => {
-    await loadSponsors();
-    setupEventListeners();
-});
+  const statusEl = $("#status");
+  const brandSelect = $("#brand-select");
+  const eventSelect = $("#event-select");
+  const brandMatchBtn = $("#brand-match-btn");
+  const eventMatchBtn = $("#event-match-btn");
+  const matchList = $("#match-list");
+  const resultsHeader = $("#results-header");
+  const emptyState = $("#empty-state");
+  const loadingIndicator = $("#loading-indicator");
 
-// Load sponsors from API
-async function loadSponsors() {
+  // Health check
+  async function checkHealth() {
     try {
-        const response = await fetch('/api/sponsors');
-        const data = await response.json();
-        sponsors = data.sponsors;
-        
-        const select = document.getElementById('sponsorSelect');
-        sponsors.forEach(sponsor => {
-            const option = document.createElement('option');
-            option.value = sponsor.id;
-            option.textContent = `${sponsor.sponsor_name} (${sponsor.status})`;
-            select.appendChild(option);
-        });
-    } catch (error) {
-        console.error('Error loading sponsors:', error);
-        alert('Failed to load sponsors. Please refresh the page.');
+      const r = await fetch("/health");
+      const data = await r.json();
+      statusEl.textContent = "Live";
+      statusEl.classList.toggle("connected", data.database === "connected");
+      statusEl.classList.toggle("error", data.database !== "connected");
+    } catch {
+      statusEl.textContent = "Offline";
+      statusEl.classList.remove("connected");
+      statusEl.classList.add("error");
     }
-}
+  }
 
-// Setup event listeners
-function setupEventListeners() {
-    const select = document.getElementById('sponsorSelect');
-    const button = document.getElementById('findMatchesBtn');
-    
-    select.addEventListener('change', () => {
-        button.disabled = !select.value;
-    });
-    
-    button.addEventListener('click', async () => {
-        const sponsorId = parseInt(select.value);
-        if (sponsorId) {
-            await findMatches(sponsorId);
-        }
-    });
-}
-
-// Find matches for selected sponsor
-async function findMatches(sponsorId) {
-    const loading = document.getElementById('loading');
-    const results = document.getElementById('results');
-    const noResults = document.getElementById('noResults');
-    const matchesContainer = document.getElementById('matchesContainer');
-    const resultsTitle = document.getElementById('resultsTitle');
-    
-    // Show loading, hide results
-    loading.classList.remove('hidden');
-    results.classList.add('hidden');
-    noResults.classList.add('hidden');
-    matchesContainer.innerHTML = '';
-    
+  // Load brands
+  async function loadBrands() {
     try {
-        const response = await fetch(`/api/sponsors/${sponsorId}/matches`);
-        const data = await response.json();
-        
-        loading.classList.add('hidden');
-        
-        if (data.matches && data.matches.length > 0) {
-            resultsTitle.textContent = `Matches for ${data.sponsor_name}`;
-            results.classList.remove('hidden');
-            
-            data.matches.forEach(match => {
-                const card = createMatchCard(match);
-                matchesContainer.appendChild(card);
-            });
-        } else {
-            noResults.classList.remove('hidden');
-        }
-    } catch (error) {
-        console.error('Error finding matches:', error);
-        loading.classList.add('hidden');
-        alert('Failed to find matches. Please try again.');
+      const r = await fetch("/api/brands");
+      if (!r.ok) throw new Error("Failed");
+      const { brands } = await r.json();
+      brandSelect.innerHTML = '<option value="">—</option>' +
+        (brands || []).map((b) => `<option value="${b.id}">${escapeHtml(b.brand_name || "Unnamed")}</option>`).join("");
+      brandSelect.disabled = false;
+    } catch {
+      brandSelect.innerHTML = '<option value="">Error loading</option>';
     }
-}
+  }
 
-// Create a match card element
-function createMatchCard(match) {
-    const card = document.createElement('div');
-    card.className = 'match-card';
-    
-    const matchHeader = document.createElement('div');
-    matchHeader.className = 'match-header';
-    
-    const eventName = document.createElement('div');
-    eventName.className = 'event-name';
-    eventName.textContent = match.event_name;
-    
-    const matchPercentage = document.createElement('div');
-    matchPercentage.className = 'match-percentage';
-    matchPercentage.textContent = `${match.match_percentage.toFixed(1)}%`;
-    
-    matchHeader.appendChild(eventName);
-    matchHeader.appendChild(matchPercentage);
-    
-    const explanation = document.createElement('div');
-    explanation.className = 'match-explanation';
-    explanation.textContent = match.explanation;
-    
-    const breakdown = document.createElement('div');
-    breakdown.className = 'breakdown';
-    
-    const breakdownTitle = document.createElement('div');
-    breakdownTitle.className = 'breakdown-title';
-    breakdownTitle.textContent = 'Score Breakdown:';
-    breakdown.appendChild(breakdownTitle);
-    
-    // Add breakdown items
-    const features = ['geography', 'budget', 'sponsorship_type', 'event_type', 'footfall'];
-    features.forEach(feature => {
-        if (match.breakdown[feature]) {
-            const item = createBreakdownItem(feature, match.breakdown[feature]);
-            breakdown.appendChild(item);
-        }
+  // Load events
+  async function loadEvents() {
+    try {
+      const r = await fetch("/api/events");
+      if (!r.ok) throw new Error("Failed");
+      const { events } = await r.json();
+      eventSelect.innerHTML = '<option value="">—</option>' +
+        (events || []).map((e) => `<option value="${e.id}">${escapeHtml(e.event_name || "Unnamed")}</option>`).join("");
+      eventSelect.disabled = false;
+    } catch {
+      eventSelect.innerHTML = '<option value="">Error loading</option>';
+    }
+  }
+
+  function escapeHtml(s) {
+    const d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function showMatches(matches, nameKey, countLabel) {
+    if (!matches || matches.length === 0) {
+      matchList.innerHTML = "";
+      resultsHeader.textContent = "";
+      emptyState.classList.remove("hidden");
+      emptyState.querySelector("span:last-child").textContent = "No matches found";
+      return;
+    }
+
+    emptyState.classList.add("hidden");
+    resultsHeader.textContent = `${matches.length} ${countLabel}`;
+
+    matchList.innerHTML = matches.map((m, i) => {
+      const pct = Math.round(m.match_percentage || 0);
+      const name = m[nameKey] || "—";
+      const explanation = m.explanation || "No explanation available.";
+      return `
+        <article class="match-card" data-idx="${i}">
+          <div class="match-main">
+            <div class="match-info">
+              <div class="match-name">${escapeHtml(name)}</div>
+              <div class="match-bar-wrap"><div class="match-bar" style="width:${pct}%"></div></div>
+            </div>
+            <div class="match-actions">
+              <span class="match-pct">${pct}%</span>
+              <button class="match-toggle" aria-expanded="false" title="Show details">
+                <svg class="chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3.5 5.25L7 8.75L10.5 5.25"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="match-details" hidden>${escapeHtml(explanation)}</div>
+        </article>
+      `;
+    }).join("");
+
+    matchList.querySelectorAll(".match-toggle").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const card = btn.closest(".match-card");
+        const details = card.querySelector(".match-details");
+        const open = !details.hidden;
+        details.hidden = open;
+        btn.setAttribute("aria-expanded", !open);
+        btn.classList.toggle("open", !open);
+      });
     });
-    
-    card.appendChild(matchHeader);
-    card.appendChild(explanation);
-    card.appendChild(breakdown);
-    
-    return card;
-}
+  }
 
-// Create a breakdown item element
-function createBreakdownItem(featureName, featureData) {
-    const item = document.createElement('div');
-    item.className = 'breakdown-item';
-    
-    // Determine match class
-    if (featureData.match_factor === 1.0) {
-        item.classList.add('full-match');
-    } else if (featureData.match_factor === 0.5) {
-        item.classList.add('partial-match');
-    } else {
-        item.classList.add('no-match');
+  function showLoading() {
+    loadingIndicator.classList.remove("hidden");
+    matchList.innerHTML = "";
+    matchList.classList.add("hidden");
+    resultsHeader.textContent = "";
+    emptyState.classList.add("hidden");
+  }
+
+  function hideLoading() {
+    loadingIndicator.classList.add("hidden");
+    matchList.classList.remove("hidden");
+  }
+
+  function updateEmptyState(msg) {
+    matchList.innerHTML = "";
+    resultsHeader.textContent = "";
+    emptyState.classList.remove("hidden");
+    emptyState.querySelector("span:last-child").textContent = msg;
+  }
+
+  async function fetchBrandMatches() {
+    const id = brandSelect.value;
+    if (!id) {
+      updateEmptyState("Select a brand above");
+      return;
     }
-    
-    const header = document.createElement('div');
-    header.className = 'breakdown-item-header';
-    
-    const name = document.createElement('div');
-    name.className = 'breakdown-item-name';
-    name.textContent = featureName.replace('_', ' ');
-    
-    const score = document.createElement('div');
-    score.className = 'breakdown-item-score';
-    score.textContent = `${featureData.contribution.toFixed(1)} / ${featureData.weight.toFixed(1)} (${(featureData.match_factor * 100).toFixed(0)}% match)`;
-    
-    header.appendChild(name);
-    header.appendChild(score);
-    
-    const explanation = document.createElement('div');
-    explanation.className = 'breakdown-item-explanation';
-    explanation.textContent = featureData.explanation;
-    
-    item.appendChild(header);
-    item.appendChild(explanation);
-    
-    return item;
-}
+    showLoading();
+    try {
+      const r = await fetch(`/api/brands/${id}/matches`);
+      if (!r.ok) throw new Error("Failed");
+      const data = await r.json();
+      showMatches(data.matches, "event_name", "events");
+    } catch {
+      updateEmptyState("Error loading matches");
+    }
+    hideLoading();
+  }
+
+  async function fetchEventMatches() {
+    const id = eventSelect.value;
+    if (!id) {
+      updateEmptyState("Select an event above");
+      return;
+    }
+    showLoading();
+    try {
+      const r = await fetch(`/api/events/${id}/matches`);
+      if (!r.ok) throw new Error("Failed");
+      const data = await r.json();
+      showMatches(data.matches, "brand_name", "brands");
+    } catch {
+      updateEmptyState("Error loading matches");
+    }
+    hideLoading();
+  }
+
+  // Tab switch
+  function setMode(mode) {
+    const brandPicker = $(".picker[data-mode='brand']");
+    const eventPicker = $(".picker[data-mode='event']");
+    const tabs = $$(".tab");
+
+    tabs.forEach((t) => t.classList.toggle("active", t.dataset.mode === mode));
+    brandPicker.classList.toggle("hidden", mode !== "brand");
+    eventPicker.classList.toggle("hidden", mode !== "event");
+
+    brandSelect.value = "";
+    eventSelect.value = "";
+    brandMatchBtn.disabled = true;
+    eventMatchBtn.disabled = true;
+    updateEmptyState("Select above, then click Match");
+  }
+
+  function onBrandSelect() {
+    brandMatchBtn.disabled = !brandSelect.value;
+    updateEmptyState("Select above, then click Match");
+  }
+
+  function onEventSelect() {
+    eventMatchBtn.disabled = !eventSelect.value;
+    updateEmptyState("Select above, then click Match");
+  }
+
+  // Init
+  checkHealth();
+  setInterval(checkHealth, 30000);
+  loadBrands();
+  loadEvents();
+
+  $$(".tab").forEach((t) => {
+    t.addEventListener("click", () => setMode(t.dataset.mode));
+  });
+  brandSelect.addEventListener("change", onBrandSelect);
+  eventSelect.addEventListener("change", onEventSelect);
+  brandMatchBtn.addEventListener("click", fetchBrandMatches);
+  eventMatchBtn.addEventListener("click", fetchEventMatches);
+
+  updateEmptyState("Select above, then click Match");
+})();

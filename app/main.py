@@ -24,13 +24,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Sponsorship Matching System", lifespan=lifespan)
 
-# Mount static files
-static_path = os.path.join(os.path.dirname(__file__), "..", "static")
-if os.path.exists(static_path):
-    app.mount("/static", StaticFiles(directory=static_path), name="static")
+# Paths relative to project root (parent of app/)
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+static_path = os.path.join(BASE_DIR, "static")
+templates_path = os.path.join(BASE_DIR, "templates")
 
-# Templates
-templates_path = os.path.join(os.path.dirname(__file__), "..", "templates")
+# Mount static files first so /static/* is served
+if os.path.isdir(static_path):
+    app.mount("/static", StaticFiles(directory=static_path), name="static")
+else:
+    print("Warning: static directory not found at", static_path)
+
 templates = Jinja2Templates(directory=templates_path)
 
 
@@ -54,18 +58,12 @@ async def health():
 
 @app.get("/api/brands")
 async def get_brands():
-    """Get all brands (sponsors) for dropdown."""
+    """Get all brands (brands) for dropdown."""
     try:
-        sponsors = get_brands_list()
-        return {"sponsors": sponsors}
+        brands = get_brands_list()
+        return {"brands": brands}
     except Exception as e:
         raise HTTPException(status_code=503, detail=str(e))
-
-
-@app.get("/api/sponsors")
-async def get_sponsors_alias():
-    """Alias for /api/brands so dropdowns work with either URL."""
-    return await get_brands()
 
 
 @app.get("/api/events")
@@ -77,14 +75,14 @@ async def get_events():
     except Exception as e:
         raise HTTPException(status_code=503, detail=str(e))
 
-@app.get("/api/sponsors/{sponsor_id}/matches")
-async def get_sponsor_matches(sponsor_id: int):
-    """Get matched events for a specific sponsor (brand)."""
+@app.get("/api/brands/{brand_id}/matches")
+async def get_brand_matches(brand_id: int):
+    """Get matched events for a specific brand (brand)."""
     try:
-        result = get_matches_for_brand(sponsor_id)
+        result = get_matches_for_brand(brand_id)
         if result is None:
-            result = {"brand_org_id": sponsor_id, "brand_name": "Unknown", "matches": []}
-        result["sponsor_name"] = result.get("brand_name", "Unknown")
+            result = {"brand_org_id": brand_id, "brand_name": "Unknown", "matches": []}
+        result["brand_name"] = result.get("brand_name", "Unknown")
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -102,4 +100,5 @@ async def get_event_matches(event_id: int):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8000)
+
