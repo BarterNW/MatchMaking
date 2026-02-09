@@ -1,40 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sponsorship Matching System</title>
-    <link rel="stylesheet" href="/static/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BarterNow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Sponsorship Matching System</h1>
-            <p class="subtitle">Find relevant events for your sponsorship</p>
-        </header>
-        
-        <div class="controls">
-            <div class="form-group">
-                <label for="sponsorSelect">Select Sponsor:</label>
-                <select id="sponsorSelect">
-                    <option value="">-- Select a sponsor --</option>
-                </select>
-            </div>
-            <button id="findMatchesBtn" class="btn-primary" disabled>Find Relevant Events</button>
+  <div class="app">
+    <header class="header">
+      <span class="logo">BarterNow</span>
+      <div class="status" id="status"></div>
+    </header>
+
+    <main class="main">
+      <nav class="tabs">
+        <button class="tab active" data-mode="brand">Brand → Events</button>
+        <button class="tab" data-mode="event">Event → Brands</button>
+      </nav>
+
+      <section class="picker" data-mode="brand">
+        <div class="picker-label">Select brand</div>
+        <div class="picker-row">
+          <select class="select" id="brand-select" disabled>
+            <option value="">—</option>
+          </select>
+          <button class="btn-match" id="brand-match-btn" disabled>Match</button>
         </div>
-        
-        <div id="loading" class="loading hidden">Loading matches...</div>
-        
-        <div id="results" class="results hidden">
-            <h2 id="resultsTitle"></h2>
-            <div id="matchesContainer"></div>
+      </section>
+      <section class="picker hidden" data-mode="event">
+        <div class="picker-label">Select event</div>
+        <div class="picker-row">
+          <select class="select" id="event-select" disabled>
+            <option value="">—</option>
+          </select>
+          <button class="btn-match" id="event-match-btn" disabled>Match</button>
         </div>
-        
-        <div id="noResults" class="no-results hidden">
-            <p>No matching events found (minimum 60% match required).</p>
+      </section>
+
+      <section class="results">
+        <div class="results-header" id="results-header"></div>
+        <div class="loading-indicator hidden" id="loading-indicator">
+          <span class="spinner"></span>
+          <span>Finding matches…</span>
         </div>
-    </div>
-    
-    <script src="/static/script.js"></script>
+        <div class="match-list" id="match-list"></div>
+        <div class="empty-state" id="empty-state">
+          <span class="empty-icon">◎</span>
+          <span>Select above to see matches</span>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="/static/script.js"></script>
 </body>
 </html>

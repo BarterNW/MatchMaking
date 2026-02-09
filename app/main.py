@@ -24,20 +24,24 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Sponsorship Matching System", lifespan=lifespan)
 
-# Mount static files
-# static_path = os.path.join(os.path.dirname(__file__), "..", "static")
-# if os.path.exists(static_path):
-#     app.mount("/static", StaticFiles(directory=static_path), name="static")
+# Paths relative to project root (parent of app/)
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+static_path = os.path.join(BASE_DIR, "static")
+templates_path = os.path.join(BASE_DIR, "templates")
 
-# # Templates
-# templates_path = os.path.join(os.path.dirname(__file__), "..", "templates")
-# templates = Jinja2Templates(directory=templates_path)
+# Mount static files first so /static/* is served
+if os.path.isdir(static_path):
+    app.mount("/static", StaticFiles(directory=static_path), name="static")
+else:
+    print("Warning: static directory not found at", static_path)
+
+templates = Jinja2Templates(directory=templates_path)
 
 
-# @app.get("/", response_class=HTMLResponse)
-# async def read_root(request: Request):
-#     """Serve the main HTML page."""
-#     return templates.TemplateResponse("index.html", {"request": request})
+@app.get("/", response_class=HTMLResponse)
+async def read_root(request: Request):
+    """Serve the main HTML page."""
+    return templates.TemplateResponse("index.html", {"request": request})
 
 
 @app.get("/health")
@@ -53,13 +57,14 @@ async def health():
 
 
 @app.get("/api/brands")
-async def get_sponsors():
-    """Get all brands (sponsors) for dropdown."""
+async def get_brands():
+    """Get all brands (brands) for dropdown."""
     try:
-        sponsors = get_brands_list()
-        return {"sponsors": sponsors}
+        brands = get_brands_list()
+        return {"brands": brands}
     except Exception as e:
         raise HTTPException(status_code=503, detail=str(e))
+
 
 @app.get("/api/events")
 async def get_events():
@@ -70,25 +75,30 @@ async def get_events():
     except Exception as e:
         raise HTTPException(status_code=503, detail=str(e))
 
-@app.get("/Api/v1/brands/search/{sponsor_id}")
-async def get_sponsor_matches(sponsor_id: int):
-    """Get matched events for a specific sponsor (brand)."""
+@app.get("/api/brands/{brand_id}/matches")
+async def get_brand_matches(brand_id: int):
+    """Get matched events for a specific brand (brand)."""
     try:
-        result = get_matches_for_brand(sponsor_id)
-        result["sponsor_name"] = result.get("brand_name", "Unknown")
+        result = get_matches_for_brand(brand_id)
+        if result is None:
+            result = {"brand_org_id": brand_id, "brand_name": "Unknown", "matches": []}
+        result["brand_name"] = result.get("brand_name", "Unknown")
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/Api/v1/events/search/{event_id}")
+@app.get("/api/events/{event_id}/matches")
 async def get_event_matches(event_id: int):
     """Get matched brands for a specific event."""
     try:
         result = get_matches_for_event(event_id)
+        if result is None:
+            result = {"event_org_id": event_id, "event_name": "Unknown", "matches": []}
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8000)
+

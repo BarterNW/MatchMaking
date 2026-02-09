@@ -252,7 +252,7 @@ def score_audience_overlap(
     # Calculate average
     if scores:
         match_factor = sum(scores) / len(scores)
-        explanation = " | ".join(explanations)
+        explanation = "\n".join(explanations)
     else:
         match_factor = 0.5
         explanation = "Insufficient audience data to score"
@@ -364,35 +364,32 @@ def evaluate_event_for_brands(brand_org_id: int, event_org_id: int) -> Optional[
     weight_set_id = brand.get('default_match_weight_set_id')
     rule_set_id = brand.get('default_match_rule_set_id')
     
-    # Load weights (or use defaults)
-    if weight_set_id:
-        weights = get_match_weight_set(weight_set_id)
-    else:
-        # Default weights
-        weights = {
-            'category': 0.25,
-            'geo': 0.20,
-            'budget': 0.20,
-            'audience': 0.20,
-            'deliverables': 0.15
-        }
-
-    # Load rules (or use defaults)
-    if rule_set_id:
-        rules = get_match_rule_set(rule_set_id)
-    else:
-        # Default rules
-        rules = {
-            'enforce_must_have_deliverables': False,
-            'enforce_city_filter': False,
-            'enforce_date_window': False,
-            'enforce_budget_overlap': False,
-            'min_budget_overlap_ratio': 1.0,
-            'allowed_date_slack_days': 0,
-            'min_audience_overlap_score': 1.0,
-            'budget_near_boundary_ratio': 1.0,
-            'footfall_partial_match_ratio': 1.0
-        }
+    DEFAULT_WEIGHTS = {
+        'category': 0.25,
+        'geo': 0.20,
+        'budget': 0.20,
+        'audience': 0.20,
+        'deliverables': 0.15
+    }
+    DEFAULT_RULES = {
+        'enforce_must_have_deliverables': False,
+        'enforce_city_filter': False,
+        'enforce_date_window': False,
+        'enforce_budget_overlap': False,
+        'min_budget_overlap_ratio': 1.0,
+        'allowed_date_slack_days': 0,
+        'min_audience_overlap_score': 1.0,
+        'budget_near_boundary_ratio': 0.1,
+        'footfall_partial_match_ratio': 0.8
+    }
+    # Load weights (or use defaults when missing/inactive in configdb)
+    weights = get_match_weight_set(weight_set_id) if weight_set_id else None
+    if not weights:
+        weights = DEFAULT_WEIGHTS
+    # Load rules (or use defaults when missing/inactive in configdb)
+    rules = get_match_rule_set(rule_set_id) if rule_set_id else None
+    if not rules:
+        rules = DEFAULT_RULES
     
     # Score geography (HARD FILTER)
     geo_score = score_geography(
@@ -446,7 +443,7 @@ def evaluate_event_for_brands(brand_org_id: int, event_org_id: int) -> Optional[
         if score['match_factor'] > 0:
             explanation_parts.append(f"{name.title()}: {score['explanation']}")
     
-    explanation = " | ".join(explanation_parts) if explanation_parts else "Minimal match"
+    explanation = "\n".join(explanation_parts) if explanation_parts else "Minimal match"
     
     return {
         "event_org_id": event['event_org_id'],
@@ -491,35 +488,32 @@ def evaluate_brand_for_events(brand_org_id: int, event_org_id: int) -> Optional[
     weight_set_id = brand.get('default_match_weight_set_id')
     rule_set_id = brand.get('default_match_rule_set_id')
     
-    # Load weights (or use defaults)
-    if weight_set_id:
-        weights = get_match_weight_set(weight_set_id)
-    else:
-        # Default weights
-        weights = {
-            'category': 0.25,
-            'geo': 0.20,
-            'budget': 0.20,
-            'audience': 0.20,
-            'deliverables': 0.15
-        }
-    
-    # Load rules (or use defaults)
-    if rule_set_id:
-        rules = get_match_rule_set(rule_set_id)
-    else:
-        # Default rules
-        rules = {
-            'enforce_must_have_deliverables': False,
-            'enforce_city_filter': False,
-            'enforce_date_window': False,
-            'enforce_budget_overlap': False,
-            'min_budget_overlap_ratio': 1.0,
-            'allowed_date_slack_days': 0,
-            'min_audience_overlap_score': 1.0,
-            'budget_near_boundary_ratio': 1.0,
-            'footfall_partial_match_ratio': 1.0
-        }
+    DEFAULT_WEIGHTS = {
+        'category': 0.25,
+        'geo': 0.20,
+        'budget': 0.20,
+        'audience': 0.20,
+        'deliverables': 0.15
+    }
+    DEFAULT_RULES = {
+        'enforce_must_have_deliverables': False,
+        'enforce_city_filter': False,
+        'enforce_date_window': False,
+        'enforce_budget_overlap': False,
+        'min_budget_overlap_ratio': 1.0,
+        'allowed_date_slack_days': 0,
+        'min_audience_overlap_score': 1.0,
+        'budget_near_boundary_ratio': 0.1,
+        'footfall_partial_match_ratio': 0.8
+    }
+    # Load weights (or use defaults when missing/inactive in configdb)
+    weights = get_match_weight_set(weight_set_id) if weight_set_id else None
+    if not weights:
+        weights = DEFAULT_WEIGHTS
+    # Load rules (or use defaults when missing/inactive in configdb)
+    rules = get_match_rule_set(rule_set_id) if rule_set_id else None
+    if not rules:
+        rules = DEFAULT_RULES
     
     # Score geography (HARD FILTER)
     geo_score = score_geography(
@@ -600,7 +594,7 @@ def evaluate_brand_for_events(brand_org_id: int, event_org_id: int) -> Optional[
         if score['match_factor'] > 0:
             explanation_parts.append(f"{name.title()}: {score['explanation']}")
     
-    explanation = " | ".join(explanation_parts) if explanation_parts else "Minimal match"
+    explanation = "\n".join(explanation_parts) if explanation_parts else "Minimal match"
     
     return {
         "event_org_id": event['event_org_id'],

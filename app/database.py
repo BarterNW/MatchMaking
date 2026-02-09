@@ -484,7 +484,7 @@ def get_brands_list() -> List[Dict[str, Any]]:
         with conn.cursor() as cur:
             cur.execute(query)
             return [
-                {"id": row["org_id"], "sponsor_name": row["org_name"] or "Unnamed", "status": "active"}
+                {"id": row["org_id"], "brand_name": row["org_name"] or "Unnamed", "status": "active"}
                 for row in cur.fetchall()
             ]
 
